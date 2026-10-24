@@ -1,0 +1,91 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  :root {
+    --color-primary: #0d6b63;
+    --color-primary-hover: #0a5851;
+    --color-primary-light: #e6f4f2;
+    --color-bg: #f0f5fa;
+    --color-surface: #ffffff;
+    --color-border: #eaeff5;
+    --color-text-main: #1e293b;
+    --color-text-muted: #64748b;
+  }
+
+  .dark {
+    --color-primary: #2dd4bf;
+    --color-primary-hover: #14b8a6;
+    --color-primary-light: #132e35;
+    --color-bg: #0b1120;
+    --color-surface: #1e293b;
+    --color-border: #334155;
+    --color-text-main: #f8fafc;
+    --color-text-muted: #94a3b8;
+  }
+
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-text-main);
+    font-family: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  .dark body {
+    background-color: #0b1120;
+    color: #f8fafc;
+  }
+
+  /* Form dropdown dark mode compatibility */
+  .dark select option {
+    background-color: #1e293b;
+    color: #f8fafc;
+  }
+
+  .dark input::placeholder,
+  .dark textarea::placeholder {
+    color: #64748b;
+  }
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Print Styles for Kop Surat & Official Reports */
+@media print {
+  body {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    font-size: 11pt !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  .card, table, th, td {
+    border-color: #333333 !important;
+  }
+}
