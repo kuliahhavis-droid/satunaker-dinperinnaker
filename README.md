@@ -85,7 +85,9 @@ SatuNaker mengintegrasikan aliran pencatatan data dari **7 (tujuh) unit kerja** 
 
 ## 🚀 Panduan Instalasi Lokal (Pengembangan)
 
-Jika tim teknis dinas ingin menjalankan sistem di komputer lokal:
+> 📘 **Panduan Lengkap Step-by-Step:** Tersedia pada berkas [**`PANDUAN_MENJALANKAN_LOCALHOST_3000.md`**](./PANDUAN_MENJALANKAN_LOCALHOST_3000.md).
+
+Jika Anda ingin menjalankan sistem di komputer lokal (*localhost:3000*):
 
 ### 1. Kloning Repositori
 ```bash
@@ -115,6 +117,14 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key-here
 npm run dev
 ```
 Buka peramban web pada alamat [http://localhost:3000](http://localhost:3000).
+
+### 5. Akun Pengujian di Localhost
+| Peran (Role) | Username / Email | Password Pengujian | Lingkup Akses |
+| :--- | :--- | :--- | :--- |
+| **Super Admin** | `superadmin` / `superadmin@dinperinnaker.go.id` | `admin123` | Akses penuh (Users, Master Unit, Backup) |
+| **Admin HIJTK** | `admin_hijtk` / `hijtk@dinperinnaker.go.id` | `admin_hijtk#2026` / `password123` | Khusus unit kerja Hubungan Industrial (Auto-lock) |
+| **Admin PPTK** | `admin_pptk` / `pptk@dinperinnaker.go.id` | `admin_pptk#2026` / `password123` | Khusus unit kerja Penempatan Tenaga Kerja |
+| **Kepala Dinas** | `kadis` / `kadis@dinperinnaker.go.id` | `kadis#2026` / `password123` | Mode Eksekutif / Read-Only, Cetak Kop Resmi |
 
 ---
 
