@@ -20,9 +20,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Satu Data DINPERINNAKER - Purbalingga",
-  description: "Portal Resmi Pengelolaan Data Statistik Sektoral dan Pelaporan Kinerja Terpadu Dinas Perindustrian dan Tenaga Kerja Kabupaten Purbalingga.",
-  keywords: ["Satu Data", "DINPERINNAKER", "Purbalingga", "Statistik Sektoral", "Tenaga Kerja", "Perindustrian"],
+  title: "SatuNaker - Website Satu Data Dinas Perindustrian dan Tenaga Kerja Kabupaten Purbalingga",
+  description: "Portal Resmi SatuNaker: Pengelolaan Data Statistik Sektoral dan Pelaporan Kinerja Terpadu Dinas Perindustrian dan Tenaga Kerja Kabupaten Purbalingga.",
+  keywords: ["SatuNaker", "Satu Data", "DINPERINNAKER", "Purbalingga", "Statistik Sektoral", "Tenaga Kerja", "Perindustrian"],
   authors: [{ name: "DINPERINNAKER Kabupaten Purbalingga" }],
   icons: {
     icon: "/images/logo-satudata.svg",
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     apple: "/images/logo-purbalingga.png",
   },
   openGraph: {
-    title: "Sistem Informasi Satu Data DINPERINNAKER Purbalingga",
+    title: "SatuNaker - Website Satu Data Dinas Perindustrian dan Tenaga Kerja Kabupaten Purbalingga",
     description: "Portal Data Terpadu Dinas Perindustrian dan Tenaga Kerja Kabupaten Purbalingga.",
     type: "website",
     locale: "id_ID",

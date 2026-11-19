@@ -17,9 +17,11 @@ import {
   ArrowDownRight,
   Minus,
   Lock,
-  Shield
+  Shield,
+  FileSpreadsheet
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { exportSatuNakerExcel } from '@/lib/exportExcel';
 
 export default function KelolaDataPage() {
   const { 
@@ -69,8 +71,8 @@ export default function KelolaDataPage() {
 
   // Available years
   const availableYears = useMemo(() => {
-    const yrs = Array.from(new Set(dataRecords.map(d => d.tahun_awal))).sort((a, b) => b - a);
-    if (!yrs.includes(2026)) yrs.unshift(2026);
+    const defaultYears = [2026, 2025, 2024];
+    const yrs = Array.from(new Set([...defaultYears, ...dataRecords.map(d => d.tahun_awal)])).sort((a, b) => b - a);
     return yrs;
   }, [dataRecords]);
 
@@ -195,6 +197,26 @@ export default function KelolaDataPage() {
     }
   };
 
+  // Handle Export Excel
+  const handleExportExcel = () => {
+    try {
+      if (filteredData.length === 0) {
+        toast.info('Tidak ada data yang sesuai dengan filter untuk diekspor.');
+        return;
+      }
+      const filename = exportSatuNakerExcel({
+        records: filteredData,
+        unitKerjas,
+        filterUnit,
+        filterTahun,
+        filterStatus,
+      });
+      toast.success(`Berkas Excel berhasil diunduh: ${filename}`);
+    } catch (err: any) {
+      toast.error(err?.message || 'Gagal mengekspor berkas Excel.');
+    }
+  };
+
   return (
     <AppLayout title="Kelola Data Sektoral">
       <div className="space-y-6">
@@ -209,14 +231,23 @@ export default function KelolaDataPage() {
             </p>
           </div>
 
-          {isKadis ? (
-            <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 text-xs font-bold self-start sm:self-auto">
-              <Shield className="w-4 h-4 text-amber-600" />
-              <span>Mode Eksekutif: Hanya Baca (Read-Only)</span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2.5 self-start sm:self-auto">
-              {/* Add Single Data Button */}
+          <div className="flex items-center gap-2.5 self-start sm:self-auto flex-wrap">
+            {/* Export Excel Button */}
+            <button
+              onClick={handleExportExcel}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-[#eaeff5] dark:border-[#334155] hover:border-emerald-500 text-[#25396e] dark:text-slate-200 hover:text-emerald-600 text-xs font-bold transition-all shadow-xs cursor-pointer"
+              title="Ekspor data hasil filter ke file Excel (.xlsx)"
+            >
+              <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+              <span>Ekspor Excel</span>
+            </button>
+
+            {isKadis ? (
+              <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 text-xs font-bold">
+                <Shield className="w-4 h-4 text-amber-600" />
+                <span>Mode Eksekutif: Hanya Baca</span>
+              </div>
+            ) : (
               <button
                 onClick={handleOpenAdd}
                 className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#2a92a2] hover:bg-[#217784] text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
@@ -224,8 +255,8 @@ export default function KelolaDataPage() {
                 <Plus className="w-4 h-4" />
                 <span>Tambah Data</span>
               </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {/* Filter Controls */}
@@ -499,6 +530,7 @@ export default function KelolaDataPage() {
                     <div>
                       <label className="block text-xs font-bold text-[#25396e] dark:text-slate-200 mb-1">
                         Jumlah Capaian <span className="text-rose-500">*</span>
+                        Jumlah Data <span className="text-rose-500">*</span>
                       </label>
                       <input
                         type="number"

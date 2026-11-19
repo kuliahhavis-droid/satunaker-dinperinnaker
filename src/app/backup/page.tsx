@@ -8,7 +8,7 @@ import confetti from 'canvas-confetti';
 import { toast } from 'sonner';
 
 export default function BackupPage() {
-  const { unitKerjas, dataRecords, logs, currentUser, clearLogs, addLog, restoreSQLBackup } = useData();
+  const { unitKerjas, users, dataRecords, logs, currentUser, clearLogs, addLog, restoreSQLBackup } = useData();
   const [restoreMessage, setRestoreMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [isRestoring, setIsRestoring] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -18,7 +18,7 @@ export default function BackupPage() {
   // Generate and Download SQL Backup on the fly
   const handleDownloadSQL = () => {
     let sql = `-- ========================================================\n`;
-    sql += `-- SISTEM SATU DATA DINPERINNAKER PURBALINGGA\n`;
+    sql += `-- SISTEM SATUNAKER DINPERINNAKER PURBALINGGA\n`;
     sql += `-- Next.js + Supabase SQL Backup\n`;
     sql += `-- Tanggal Cadangan: ${new Date().toISOString()}\n`;
     sql += `-- ========================================================\n\n`;
@@ -41,12 +41,20 @@ export default function BackupPage() {
     });
     sql += `\n`;
 
+    // 3. profiles
+    sql += `-- 3. PROFIL PENGGUNA\n`;
+    users.forEach(u => {
+      const unitVal = u.unit_kerja_id ? u.unit_kerja_id : 'NULL';
+      sql += `INSERT INTO profiles (id, nama_lengkap, username, email, role, unit_kerja_id, status) VALUES ('${u.id}', '${u.nama_lengkap.replace(/'/g, "''")}', '${u.username.replace(/'/g, "''")}', '${u.email.replace(/'/g, "''")}', '${u.role}', ${unitVal}, '${u.status}');\n`;
+    });
+    sql += `\n`;
+
     // Download blob
     const blob = new Blob([sql], { type: 'application/sql;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `Backup_SatuData_DINPERINNAKER_${new Date().toISOString().slice(0, 10)}.sql`);
+    link.setAttribute('download', `Backup_SatuNaker_DINPERINNAKER_${new Date().toISOString().slice(0, 10)}.sql`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -59,11 +67,43 @@ export default function BackupPage() {
       origin: { y: 0.7 }
     });
 
-    toast.success('Berkas cadangan SQL berhasil dibuat dan diunduh.');
+    toast.success('Berkas cadangan SQL lengkap berhasil dibuat dan diunduh.');
     addLog(`Super Admin mengunduh berkas cadangan database SQL`);
   };
 
-  // Restore SQL File
+  // Generate and Download JSON Backup
+  const handleDownloadJSON = () => {
+    const backupData = {
+      app: 'SatuNaker DINPERINNAKER Purbalingga',
+      version: '2.0',
+      exported_at: new Date().toISOString(),
+      unitKerjas,
+      users: users.map(u => ({ ...u, password: undefined })),
+      dataRecords,
+      logs: logs.slice(0, 200),
+    };
+
+    const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `Snapshot_SatuNaker_DINPERINNAKER_${new Date().toISOString().slice(0, 10)}.json`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    confetti({
+      particleCount: 70,
+      spread: 60,
+      origin: { y: 0.7 }
+    });
+
+    toast.success('Berkas snapshot JSON berhasil dibuat dan diunduh.');
+    addLog(`Super Admin mengunduh berkas cadangan format JSON`);
+  };
+
+  // Restore File (Supports .sql and .json)
   const handleRestoreFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -73,6 +113,26 @@ export default function BackupPage() {
 
     try {
       const text = await file.text();
+      const isJson = file.name.toLowerCase().endsWith('.json');
+
+      if (isJson) {
+        const json = JSON.parse(text);
+        if (!json.unitKerjas && !json.dataRecords) {
+          throw new Error('Format berkas JSON bukan cadangan SatuNaker yang valid.');
+        }
+        if (json.unitKerjas) {
+          localStorage.setItem('satudata_units', JSON.stringify(json.unitKerjas));
+        }
+        if (json.dataRecords) {
+          localStorage.setItem('satudata_records', JSON.stringify(json.dataRecords));
+        }
+        if (json.users) {
+          localStorage.setItem('satudata_users', JSON.stringify(json.users));
+        }
+        window.location.reload();
+        return;
+      }
+
       const res = await restoreSQLBackup(text);
       if (res.success) {
         setRestoreMessage({ type: 'success', text: res.message });
@@ -87,7 +147,7 @@ export default function BackupPage() {
         toast.error(res.message);
       }
     } catch (err: any) {
-      const msg = err.message || 'Gagal memproses file SQL.';
+      const msg = err.message || 'Gagal memproses file cadangan.';
       setRestoreMessage({ type: 'error', text: msg });
       toast.error(msg);
     } finally {
@@ -151,19 +211,19 @@ export default function BackupPage() {
 
         {/* Action Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Card 1: Download SQL */}
+          {/* Card 1: Download SQL & JSON */}
           <div className="bg-white dark:bg-[#1e293b] p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs flex flex-col justify-between">
             <div>
               <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-4">
                 <Database className="w-6 h-6" />
               </div>
-              <h3 className="text-base font-bold text-slate-800 dark:text-white">Cadangkan Database (SQL Dump)</h3>
+              <h3 className="text-base font-bold text-slate-800 dark:text-white">Cadangkan Data (SQL & JSON)</h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                Menghasilkan berkas skrip SQL berisikan tabel Master Unit Kerja dan Data Sektoral untuk arsip atau migrasi.
+                Menghasilkan berkas skrip SQL atau snapshot JSON terpadu berisikan Unit Kerja, Pengguna, dan Data Sektoral.
               </p>
             </div>
 
-            <div className="pt-6">
+            <div className="pt-6 space-y-2">
               <button
                 onClick={handleDownloadSQL}
                 className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#0d6b63] hover:bg-[#0a5851] text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
@@ -171,18 +231,25 @@ export default function BackupPage() {
                 <Download className="w-4 h-4" />
                 <span>Unduh Berkas SQL (.sql)</span>
               </button>
+              <button
+                onClick={handleDownloadJSON}
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold transition-all cursor-pointer"
+              >
+                <Download className="w-4 h-4 text-emerald-600" />
+                <span>Unduh Snapshot JSON (.json)</span>
+              </button>
             </div>
           </div>
 
-          {/* Card 2: Restore SQL */}
+          {/* Card 2: Restore SQL / JSON */}
           <div className="bg-white dark:bg-[#1e293b] p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xs flex flex-col justify-between">
             <div>
               <div className="w-12 h-12 rounded-2xl bg-sky-50 dark:bg-sky-950/40 text-sky-600 dark:text-sky-400 flex items-center justify-center mb-4">
                 <Upload className="w-6 h-6" />
               </div>
-              <h3 className="text-base font-bold text-slate-800 dark:text-white">Pulihkan Database (Restore SQL)</h3>
+              <h3 className="text-base font-bold text-slate-800 dark:text-white">Pulihkan Basis Data (Restore)</h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
-                Pulihkan data unit kerja dan data sektoral dari berkas cadangan SQL hasil export sebelumnya.
+                Pulihkan data unit kerja, pengguna, dan data sektoral dari berkas cadangan SQL atau JSON hasil ekspor.
               </p>
             </div>
 
@@ -190,7 +257,7 @@ export default function BackupPage() {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".sql"
+                accept=".sql,.json"
                 onChange={handleRestoreFile}
                 className="hidden"
                 id="restore-sql-upload"
@@ -201,7 +268,7 @@ export default function BackupPage() {
                 className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-700 disabled:opacity-50 text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
               >
                 <Upload className="w-4 h-4" />
-                <span>{isRestoring ? 'Memproses...' : 'Unggah File SQL (.sql)'}</span>
+                <span>{isRestoring ? 'Memproses...' : 'Unggah Berkas (.sql / .json)'}</span>
               </button>
             </div>
           </div>

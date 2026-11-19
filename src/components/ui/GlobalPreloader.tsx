@@ -54,10 +54,10 @@ export default function GlobalPreloader() {
 
           {/* Teks Brand & Subteks */}
           <span className="block font-sans text-[1rem] font-extrabold tracking-tight text-[#154D56] dark:text-[#46b3c3] mt-1">
-            DINPERINNAKER
+            SatuNaker
           </span>
           <span className="text-[0.72rem] text-[#64748b] dark:text-slate-400 font-medium mt-0.5">
-            Sistem Satu Data Sektoral
+            DINPERINNAKER Purbalingga
           </span>
         </div>
       </div>

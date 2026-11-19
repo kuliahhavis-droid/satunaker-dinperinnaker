@@ -175,7 +175,7 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
             {/* Footer Tips */}
             <div className="px-4 py-2.5 bg-slate-50 dark:bg-slate-800/50 border-t border-[#eaeff5] dark:border-[#334155] flex items-center justify-between text-[11px] text-[#7c8db5]">
               <span>Gunakan tombol panah & ENTER untuk memilih</span>
-              <span>Satu Data Dinperinnaker</span>
+              <span>SatuNaker Dinperinnaker</span>
             </div>
           </motion.div>
         </div>

@@ -17,8 +17,8 @@ const LoadingContext = createContext<LoadingContextType>({
 });
 
 export function LoadingProvider({ children }: { children: React.ReactNode }) {
-  const [isLoading, setIsLoading] = useState(true);
-  const [progress, setProgress] = useState(35);
+  const [isLoading, setIsLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
 
   const startLoading = useCallback(() => {
     setIsLoading(true);

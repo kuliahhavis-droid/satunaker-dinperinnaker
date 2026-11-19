@@ -1,36 +1,78 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 📊 Sistem Informasi Satu Data (SatuNaker)
+### Dinas Perindustrian dan Tenaga Kerja (DINPERINNAKER) Kabupaten Purbalingga
 
-## Getting Started
+> **"Satu Data untuk Perencanaan yang Akurat, Terukur, dan Terpercaya"**
 
-First, run the development server:
+Portal Satu Data terpadu untuk pengelolaan, validasi, dan pelaporan statistik sektoral bidang perindustrian dan ketenagakerjaan di lingkungan Pemerintah Kabupaten Purbalingga.
 
+---
+
+## 🚀 Fitur Utama
+
+- **Single Source of Truth**: Integrasi data dari Bidang HIJTK, Bidang PPTK, Sekretariat (Renkeu & Umpeg), dan Balai UPTD (BLK & PILOG).
+- **Dashboard Monitoring Real-time**: Metrik capaian makro, grafik sebaran sektoral Chart.js, persentase berkas Google Drive, dan filter per tahun anggaran.
+- **Role-Based Access Control (RBAC)**: Pembagian wewenang ketat untuk 5 tingkatan pengguna (Super Admin, Admin Bidang, Admin UPTD, Admin Sekretariat, dan Kepala Dinas).
+- **Validasi Kepemilikan Data**: Isolasi hak tambah, ubah, dan hapus data sektoral berbasis unit kerja dengan tanda kepemilikan visual (*Badge Ownership*).
+- **Laporan Resmi Ber-Kop Surat Pemkab**: Generator cetak dokumen berstandar Tata Naskah Dinas resmi Pemkab Purbalingga siap cetak fisik atau simpan PDF.
+- **Ekspor Lembar Kerja Excel**: Unduh rekapitulasi data sektoral langsung ke format `.xlsx` via SheetJS.
+- **Pencadangan & Pemulihan Mandiri**: Unduh dump SQL / JSON dan fitur restore SQL langsung dari browser.
+- **Dual Theme & Navigasi Cepat**: Mode Gelap (Dark Mode), Mode Terang (Light Mode), dan Command Palette (`Ctrl + K`).
+
+---
+
+## 🛠️ Spesifikasi Teknologi
+
+- **Frontend & Fullstack**: [Next.js 16 (App Router)](https://nextjs.org) + [React 19](https://react.dev)
+- **Styling**: [Tailwind CSS v4](https://tailwindcss.com) (Dual Theme)
+- **Basis Data**: [Supabase Cloud PostgreSQL](https://supabase.com) (Realtime + RLS) & LocalStorage Fallback
+- **Komponen & Visualisasi**: Framer Motion, Chart.js, Lucide Icons, SheetJS (XLSX), Sonner
+- **Process Manager**: PM2 Cluster Mode (`ecosystem.config.cjs`)
+
+---
+
+## ⚡ Panduan Memulai Cepat (Quick Start)
+
+### 1. Instalasi Dependensi
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Konfigurasi Environment (`.env.local`)
+Salin berkas `.env.example` menjadi `.env.local` *(opsional, sistem tetap jalan normal dengan data lokal)*:
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 3. Menjalankan Server Pengembangan
+```bash
+npm run dev
+```
+Buka peramban di [http://localhost:3000](http://localhost:3000).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## 🔑 Kredensial Akun Default (Demo)
 
-To learn more about Next.js, take a look at the following resources:
+| Username | Password | Role | Unit Kerja |
+| :--- | :--- | :--- | :--- |
+| `superadmin` | `SuperAdmin#2026` | **Super Admin** | Semua Unit |
+| `kadis` | `kadis#2026` | **Kepala Dinas** | Mode Eksekutif (Read-Only) |
+| `admin_hijtk` | `hijtk#2026` | **Admin Bidang** | Bidang HIJTK |
+| `admin_pptk` | `pptk#2026` | **Admin Bidang** | Bidang PPTK |
+| `admin_renkeu` | `renkeu#2026` | **Admin Sekretariat** | Subag Perencanaan & Keuangan |
+| `admin_blk` | `blk#2026` | **Admin UPTD** | UPTD Balai Latihan Kerja (BLK) |
+| `admin_pilog` | `pilog#2026` | **Admin UPTD** | UPTD Pengembangan Industri Logam |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+*(Tersedia juga fitur **Quick Role Selector** di halaman `/login` untuk berpindah peran dalam satu kali klik)*.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## 📚 Dokumentasi Lengkap Proyek
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Dokumentasi komprehensif teknis, arsitektur, diagram alur bisnis, skema basis data PostgreSQL, dan panduan deployment tersedia pada:
+👉 **[DOKUMENTASI_PROYEK.md](./DOKUMENTASI_PROYEK.md)**
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+*Dinas Perindustrian dan Tenaga Kerja (DINPERINNAKER) Kabupaten Purbalingga*

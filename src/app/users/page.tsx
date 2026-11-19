@@ -4,17 +4,19 @@ import React, { useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { useData } from '@/context/DataContext';
 import { UserProfile, UserRole } from '@/types';
-import { Users, Plus, Key, ToggleLeft, ToggleRight, Trash2, X } from 'lucide-react';
+import { Users, Plus, Key, ToggleLeft, ToggleRight, Trash2, X, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function UsersPage() {
-  const { users, unitKerjas, currentUser, addUser, deleteUser, toggleUserStatus, resetPassword } = useData();
+  const { users, unitKerjas, currentUser, addUser, updateUser, deleteUser, toggleUserStatus, resetPassword } = useData();
 
   const isSuperAdmin = currentUser?.role === 'Super Admin';
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
+  const [editUser, setEditUser] = useState<UserProfile | null>(null);
   const [newPassword, setNewPassword] = useState('');
 
   // Form State
@@ -29,6 +31,15 @@ export default function UsersPage() {
     password: '',
   });
 
+  const [editFormData, setEditFormData] = useState({
+    nama_lengkap: '',
+    username: '',
+    email: '',
+    role: 'Admin Bidang' as UserRole,
+    unit_kerja_id: 1 as number | null,
+    status: 'Aktif' as 'Aktif' | 'Nonaktif',
+  });
+
   const handleOpenAdd = () => {
     setFormData({
       nama_lengkap: '',
@@ -41,6 +52,45 @@ export default function UsersPage() {
       password: '',
     });
     setIsAddModalOpen(true);
+  };
+
+  const handleOpenEdit = (user: UserProfile) => {
+    setEditUser(user);
+    setEditFormData({
+      nama_lengkap: user.nama_lengkap || user.nama,
+      username: user.username,
+      email: user.email || '',
+      role: user.role,
+      unit_kerja_id: user.unit_kerja_id || (unitKerjas[0]?.id ?? 1),
+      status: (user.status as 'Aktif' | 'Nonaktif') || 'Aktif',
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editUser || !editFormData.username.trim()) return;
+
+    if (['Admin Bidang', 'Admin Sekretariat', 'Admin UPTD'].includes(editFormData.role) && !editFormData.unit_kerja_id) {
+      toast.error('Unit kerja wajib dipilih untuk Admin Bidang, Sekretariat, atau UPTD.');
+      return;
+    }
+
+    try {
+      await updateUser(editUser.id, {
+        nama_lengkap: editFormData.nama_lengkap,
+        nama: editFormData.nama_lengkap,
+        username: editFormData.username,
+        email: editFormData.email,
+        role: editFormData.role,
+        unit_kerja_id: ['Super Admin', 'Kepala Dinas'].includes(editFormData.role) ? null : Number(editFormData.unit_kerja_id),
+        status: editFormData.status,
+      });
+      toast.success(`Data akun "${editFormData.username}" berhasil diperbarui.`);
+      setIsEditModalOpen(false);
+    } catch (err: any) {
+      toast.error(err.message || 'Gagal memperbarui data pengguna.');
+    }
   };
 
   const handleOpenReset = (user: UserProfile) => {
@@ -188,6 +238,13 @@ export default function UsersPage() {
                       <td className="px-4 py-3 text-center">
                         <div className="flex items-center justify-center gap-1.5">
                           <button
+                            onClick={() => handleOpenEdit(u)}
+                            className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                            title="Edit Data Pengguna"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                          <button
                             onClick={() => handleOpenReset(u)}
                             className="p-1.5 rounded-lg text-amber-600 hover:bg-amber-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                             title="Reset Password"
@@ -334,6 +391,136 @@ export default function UsersPage() {
                     className="px-5 py-2 rounded-xl text-xs font-bold bg-[#2a92a2] hover:bg-[#217784] text-white shadow-xs transition-all cursor-pointer"
                   >
                     Buat Akun
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Modal Edit User */}
+        {isEditModalOpen && editUser && (
+          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-[#1e293b] w-full max-w-lg rounded-2xl shadow-2xl border border-[#eaeff5] dark:border-[#334155] overflow-hidden">
+              <div className="px-6 py-4 border-b border-[#eaeff5] dark:border-[#334155] flex items-center justify-between bg-[#f2f7ff] dark:bg-slate-800">
+                <div>
+                  <h3 className="font-extrabold text-[#25396e] dark:text-white text-base">Edit Data Pengguna</h3>
+                  <p className="text-xs text-[#7c8db5] mt-0.5">Perbarui profil, peran hak akses, atau unit kerja pengguna</p>
+                </div>
+                <button
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="p-1 rounded-lg text-[#7c8db5] hover:text-[#25396e] dark:hover:text-white cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <form onSubmit={handleEditSubmit} className="p-6 space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-[#25396e] dark:text-slate-200 mb-1">
+                    Nama Lengkap <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Contoh: Budi Santoso, S.Kom."
+                    value={editFormData.nama_lengkap}
+                    onChange={(e) => setEditFormData({ ...editFormData, nama_lengkap: e.target.value })}
+                    className="w-full px-3 py-2 bg-[#f2f7ff] dark:bg-slate-800 border border-[#eaeff5] dark:border-[#334155] rounded-xl text-xs font-semibold text-[#25396e] dark:text-white outline-none focus:border-[#2a92a2]"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-[#25396e] dark:text-slate-200 mb-1">
+                      Username <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="admin_nama"
+                      value={editFormData.username}
+                      onChange={(e) => setEditFormData({ ...editFormData, username: e.target.value })}
+                      className="w-full px-3 py-2 bg-[#f2f7ff] dark:bg-slate-800 border border-[#eaeff5] dark:border-[#334155] rounded-xl text-xs font-semibold text-[#25396e] dark:text-white outline-none focus:border-[#2a92a2]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-[#25396e] dark:text-slate-200 mb-1">
+                      Email Dinas
+                    </label>
+                    <input
+                      type="email"
+                      placeholder="nama@dinperinnaker.go.id"
+                      value={editFormData.email}
+                      onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
+                      className="w-full px-3 py-2 bg-[#f2f7ff] dark:bg-slate-800 border border-[#eaeff5] dark:border-[#334155] rounded-xl text-xs font-semibold text-[#25396e] dark:text-white outline-none focus:border-[#2a92a2]"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-[#25396e] dark:text-slate-200 mb-1">
+                      Peran (Role) <span className="text-rose-500">*</span>
+                    </label>
+                    <select
+                      value={editFormData.role}
+                      onChange={(e) => setEditFormData({ ...editFormData, role: e.target.value as UserRole })}
+                      className="w-full px-3 py-2 bg-[#f2f7ff] dark:bg-slate-800 border border-[#eaeff5] dark:border-[#334155] rounded-xl text-xs font-semibold text-[#25396e] dark:text-white outline-none focus:border-[#2a92a2]"
+                    >
+                      <option value="Super Admin">Super Admin</option>
+                      <option value="Admin Bidang">Admin Bidang</option>
+                      <option value="Admin Sekretariat">Admin Sekretariat</option>
+                      <option value="Admin UPTD">Admin UPTD</option>
+                      <option value="Kepala Dinas">Kepala Dinas</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-[#25396e] dark:text-slate-200 mb-1">
+                      Unit Kerja Terkait
+                    </label>
+                    <select
+                      disabled={['Super Admin', 'Kepala Dinas'].includes(editFormData.role)}
+                      value={editFormData.unit_kerja_id || ''}
+                      onChange={(e) => setEditFormData({ ...editFormData, unit_kerja_id: Number(e.target.value) })}
+                      className="w-full px-3 py-2 bg-[#f2f7ff] dark:bg-slate-800 border border-[#eaeff5] dark:border-[#334155] rounded-xl text-xs font-semibold text-[#25396e] dark:text-white outline-none focus:border-[#2a92a2] disabled:opacity-50"
+                    >
+                      {unitKerjas.map(u => (
+                        <option key={u.id} value={u.id}>{u.nama_unit}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-[#25396e] dark:text-slate-200 mb-1">
+                    Status Akun <span className="text-rose-500">*</span>
+                  </label>
+                  <select
+                    value={editFormData.status}
+                    onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value as 'Aktif' | 'Nonaktif' })}
+                    className="w-full px-3 py-2 bg-[#f2f7ff] dark:bg-slate-800 border border-[#eaeff5] dark:border-[#334155] rounded-xl text-xs font-semibold text-[#25396e] dark:text-white outline-none focus:border-[#2a92a2]"
+                  >
+                    <option value="Aktif">Aktif</option>
+                    <option value="Nonaktif">Nonaktif</option>
+                  </select>
+                </div>
+
+                <div className="pt-3 border-t border-[#eaeff5] dark:border-[#334155] flex items-center justify-end gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditModalOpen(false)}
+                    className="px-4 py-2 rounded-xl text-xs font-bold text-[#7c8db5] hover:bg-[#f2f7ff] dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2 rounded-xl text-xs font-bold bg-[#2a92a2] hover:bg-[#217784] text-white shadow-xs transition-all cursor-pointer"
+                  >
+                    Simpan Perubahan
                   </button>
                 </div>
               </form>

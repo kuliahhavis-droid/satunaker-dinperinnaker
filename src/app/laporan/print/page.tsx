@@ -3,7 +3,16 @@
 import React, { useMemo, Suspense, useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useData } from '@/context/DataContext';
-import { Printer, ArrowLeft } from 'lucide-react';
+import { Printer, ArrowLeft, ExternalLink } from 'lucide-react';
+
+function formatHttpsUrl(url: string | null | undefined): string | null {
+  if (!url || !url.trim()) return null;
+  const trimmed = url.trim();
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed.replace(/^http:\/\//i, 'https://');
+  }
+  return `https://${trimmed}`;
+}
 
 function PrintContent() {
   const router = useRouter();
@@ -118,7 +127,7 @@ function PrintContent() {
             LAPORAN REKAPITULASI DATA STATISTIK SEKTORAL
           </h4>
           <p className="text-xs text-slate-700 mt-1">
-            Sistem Informasi Satu Data DINPERINNAKER Kabupaten Purbalingga
+            Sistem Informasi SatuNaker DINPERINNAKER Kabupaten Purbalingga
           </p>
         </div>
 
@@ -153,42 +162,60 @@ function PrintContent() {
         {/* Official Report Table */}
         <table className="w-full text-left text-xs border-collapse border border-black mb-8">
           <thead>
-            <tr className="bg-slate-100 print:bg-slate-200 text-center font-bold">
-              <th className="border border-black px-2 py-2.5 w-10">NO</th>
-              <th className="border border-black px-3 py-2.5 w-44">UNIT KERJA</th>
-              <th className="border border-black px-3 py-2.5">NAMA DATA / INDIKATOR</th>
-              <th className="border border-black px-2 py-2.5 w-24">SATUAN</th>
-              <th className="border border-black px-2 py-2.5 w-16">TAHUN</th>
-              <th className="border border-black px-3 py-2.5 w-28 text-right">TOTAL DATA</th>
-              <th className="border border-black px-2 py-2.5 w-20">STATUS</th>
+            <tr className="bg-slate-100 print:bg-slate-200 text-center font-bold text-[11px]">
+              <th className="border border-black px-1.5 py-2 w-8">NO</th>
+              <th className="border border-black px-2 py-2 w-32">UNIT KERJA</th>
+              <th className="border border-black px-2.5 py-2">NAMA DATA / INDIKATOR</th>
+              <th className="border border-black px-2 py-2 w-20">SATUAN</th>
+              <th className="border border-black px-1.5 py-2 w-14">TAHUN</th>
+              <th className="border border-black px-2 py-2 w-20 text-right">TOTAL DATA</th>
+              <th className="border border-black px-1.5 py-2 w-16">STATUS</th>
+              <th className="border border-black px-2 py-2 w-52">TAUTAN GOOGLE DRIVE</th>
             </tr>
           </thead>
           <tbody>
             {filteredData.length === 0 ? (
               <tr>
-                <td colSpan={7} className="border border-black px-4 py-8 text-center text-slate-500 italic">
+                <td colSpan={8} className="border border-black px-4 py-8 text-center text-slate-500 italic">
                   Tidak ada data yang tersedia untuk parameter laporan ini.
                 </td>
               </tr>
             ) : (
               filteredData.map((item, index) => {
                 const unit = unitKerjas.find(u => u.id === item.unit_kerja_id);
+                const driveUrl = formatHttpsUrl(item.link_gdrive);
                 return (
                   <tr key={item.id} className="align-top">
-                    <td className="border border-black px-2 py-2 text-center">{index + 1}</td>
-                    <td className="border border-black px-3 py-2 font-semibold">{unit?.nama_unit}</td>
-                    <td className="border border-black px-3 py-2">
-                      <span className="font-bold block">{item.nama_data}</span>
+                    <td className="border border-black px-1.5 py-2 text-center">{index + 1}</td>
+                    <td className="border border-black px-2 py-2 font-semibold text-[11px]">{unit?.nama_unit}</td>
+                    <td className="border border-black px-2.5 py-2">
+                      <span className="font-bold block text-[11.5px] leading-snug">{item.nama_data}</span>
                       {item.deskripsi && (
                         <span className="text-[10px] text-slate-600 block mt-0.5">{item.deskripsi}</span>
                       )}
                     </td>
-                    <td className="border border-black px-2 py-2 text-center">{item.satuan}</td>
-                    <td className="border border-black px-2 py-2 text-center font-bold">{item.tahun_awal}</td>
-                    <td className="border border-black px-3 py-2 text-right font-black">
+                    <td className="border border-black px-2 py-2 text-center text-[11px]">{item.satuan}</td>
+                    <td className="border border-black px-1.5 py-2 text-center font-bold">{item.tahun_awal}</td>
+                    <td className="border border-black px-2 py-2 text-right font-black">
                       {item.jumlah.toLocaleString('id-ID')}
                     </td>
-                    <td className="border border-black px-2 py-2 text-center font-semibold">{item.status}</td>
+                    <td className="border border-black px-1.5 py-2 text-center font-semibold text-[11px]">{item.status}</td>
+                    <td className="border border-black px-2 py-2 text-[9.5px] break-all leading-snug font-mono">
+                      {driveUrl ? (
+                        <a
+                          href={driveUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-700 hover:text-blue-900 underline print:text-black print:underline inline-flex items-start gap-1"
+                          title={driveUrl}
+                        >
+                          <ExternalLink className="w-2.5 h-2.5 shrink-0 mt-0.5 no-print text-[#2a92a2]" />
+                          <span>{driveUrl}</span>
+                        </a>
+                      ) : (
+                        <span className="text-slate-400 text-center block font-sans text-xs">-</span>
+                      )}
+                    </td>
                   </tr>
                 );
               })
@@ -212,7 +239,7 @@ function PrintContent() {
               {kadis.nama_lengkap}
             </p>
             <p className="m-0 text-slate-800">Pembina Utama Muda</p>
-            <p className="m-0 text-slate-800">NIP. 19740510 199311 1 001</p>
+            <p className="m-0 text-slate-800">NIP. 19730514 199303 1 002</p>
           </div>
         </div>
       </div>

@@ -73,10 +73,10 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           </div>
           <div className="overflow-hidden">
             <h1 className="font-extrabold text-[#0d6b63] text-base leading-tight tracking-tight">
-              DINPERINNAKER
+              SatuNaker
             </h1>
             <p className="text-[11px] text-[#64748b] font-medium leading-tight mt-0.5">
-              Satu Data Dinperinnaker
+              DINPERINNAKER Purbalingga
             </p>
           </div>
         </div>

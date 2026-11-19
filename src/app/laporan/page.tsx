@@ -3,9 +3,10 @@
 import React, { useState, useMemo } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { useData } from '@/context/DataContext';
-import { Printer, Download, Filter, FileSpreadsheet, FileText } from 'lucide-react';
+import { Printer, Download, Filter, FileSpreadsheet, FileText, ExternalLink } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import * as XLSX from 'xlsx';
+import { toast } from 'sonner';
+import { exportSatuNakerExcel } from '@/lib/exportExcel';
 
 export default function LaporanPage() {
   const router = useRouter();
@@ -20,8 +21,8 @@ export default function LaporanPage() {
 
   // Available years
   const availableYears = useMemo(() => {
-    const yrs = Array.from(new Set(dataRecords.map(d => d.tahun_awal))).sort((a, b) => b - a);
-    if (!yrs.includes(2026)) yrs.unshift(2026);
+    const defaultYears = [2026, 2025, 2024];
+    const yrs = Array.from(new Set([...defaultYears, ...dataRecords.map(d => d.tahun_awal)])).sort((a, b) => b - a);
     return yrs;
   }, [dataRecords]);
 
@@ -58,44 +59,26 @@ export default function LaporanPage() {
 
   // Handle Excel Export (.xlsx)
   const handleExportExcel = () => {
-    const unitName = filterUnit === 'all' 
-      ? 'Semua Unit Kerja' 
-      : (unitKerjas.find(u => u.id.toString() === filterUnit)?.nama_unit || 'Unit Kerja');
+    try {
+      if (filteredData.length === 0) {
+        toast.info('Tidak ada data yang sesuai dengan kriteria filter untuk diekspor.');
+        return;
+      }
 
-    // Prepare worksheet rows
-    const rows = filteredData.map((d, index) => {
-      const unit = unitKerjas.find(u => u.id === d.unit_kerja_id);
-      return {
-        'No': index + 1,
-        'Unit Kerja': unit?.nama_unit || `Unit #${d.unit_kerja_id}`,
-        'Nama Data / Indikator': d.nama_data,
-        'Satuan': d.satuan,
-        'Tahun': d.tahun_awal,
-        'Jumlah Capaian': d.jumlah,
-        'Status': d.status,
-        'Tautan Google Drive': d.link_gdrive || '-',
-        'Deskripsi': d.deskripsi || '-',
-      };
-    });
+      const filename = exportSatuNakerExcel({
+        records: filteredData,
+        unitKerjas,
+        filterUnit,
+        filterTahun,
+        filterStatus,
+        tglAwal,
+        tglAkhir,
+      });
 
-    const worksheet = XLSX.utils.json_to_sheet(rows);
-
-    worksheet['!cols'] = [
-      { wch: 6 },
-      { wch: 35 },
-      { wch: 45 },
-      { wch: 15 },
-      { wch: 10 },
-      { wch: 18 },
-      { wch: 12 },
-      { wch: 40 },
-      { wch: 35 },
-    ];
-
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Laporan Satu Data');
-
-    XLSX.writeFile(workbook, `Laporan_SatuData_DINPERINNAKER_2026.xlsx`);
+      toast.success(`Berkas Excel berhasil diunduh: ${filename}`);
+    } catch (err: any) {
+      toast.error(err?.message || 'Gagal mengekspor berkas Excel.');
+    }
   };
 
   return (
@@ -105,7 +88,7 @@ export default function LaporanPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-[#1e293b] p-6 rounded-2xl border border-[#eaeff5] dark:border-[#334155] shadow-xs">
           <div>
             <h2 className="text-xl font-extrabold text-[#25396e] dark:text-white tracking-tight">
-              Laporan Terpadu Satu Data DINPERINNAKER
+              Laporan Terpadu SatuNaker DINPERINNAKER
             </h2>
             <p className="text-xs text-[#7c8db5] font-medium mt-1">
               Pratinjau data kinerja, cetak format dinas resmi, dan unduh berkas spreadsheet Excel
@@ -231,7 +214,7 @@ export default function LaporanPage() {
                   <th className="px-4 py-3.5 text-center">Tahun</th>
                   <th className="px-4 py-3.5 text-right">Jumlah</th>
                   <th className="px-4 py-3.5 text-center">Status</th>
-                  <th className="px-4 py-3.5">Dokumen Rincian</th>
+                  <th className="px-4 py-3.5 text-center">Dokumen Rincian</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#eaeff5] dark:divide-[#334155] font-medium text-[#25396e] dark:text-slate-200">
@@ -261,8 +244,21 @@ export default function LaporanPage() {
                             {item.status}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-[11px] text-[#7c8db5] truncate max-w-xs">
-                          {item.link_gdrive ? item.link_gdrive : '-'}
+                        <td className="px-4 py-3 text-center">
+                          {item.link_gdrive ? (
+                            <a
+                              href={item.link_gdrive.startsWith('http') ? item.link_gdrive : `https://${item.link_gdrive}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#e6f4f6] dark:bg-slate-800 text-[#2a92a2] hover:bg-[#2a92a2] hover:text-white dark:hover:bg-[#2a92a2] dark:hover:text-white text-[11px] font-bold transition-all shadow-2xs group"
+                              title={item.link_gdrive}
+                            >
+                              <ExternalLink className="w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                              <span>Buka Berkas</span>
+                            </a>
+                          ) : (
+                            <span className="text-[#cbd5e1] dark:text-slate-600 font-semibold">-</span>
+                          )}
                         </td>
                       </tr>
                     );

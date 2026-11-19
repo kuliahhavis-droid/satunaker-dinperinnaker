@@ -53,6 +53,17 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   // Load from LocalStorage and initial Supabase sync on mount
   useEffect(() => {
     setMounted(true);
+
+    // One-time cleanup of stale dummy cache for production readiness
+    const isCleaned = localStorage.getItem('satudata_clean_reset_v2');
+    if (!isCleaned) {
+      localStorage.removeItem('satudata_records');
+      localStorage.removeItem('satudata_logs');
+      localStorage.removeItem('satudata_units');
+      localStorage.removeItem('satudata_users');
+      localStorage.setItem('satudata_clean_reset_v2', 'true');
+    }
+
     const savedUnits = localStorage.getItem('satudata_units');
     const savedUsers = localStorage.getItem('satudata_users');
     const savedData = localStorage.getItem('satudata_records');
@@ -230,7 +241,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const fetchSupabaseData = async () => {
-    if (!isSupabaseConfigured) return;
+    if (!isSupabaseConfigured) {
+      setIsCloudConnected(false);
+      setRealtimeStatus('disconnected');
+      return;
+    }
     try {
       const [unitsRes, profilesRes, recordsRes, logsRes] = await Promise.all([
         supabase.from('unit_kerja').select('*').order('id', { ascending: true }),
@@ -239,17 +254,34 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         supabase.from('log_aktivitas').select('*').order('created_at', { ascending: false }).limit(100),
       ]);
 
+      // Check if network failed, DNS host not found, or project is paused
+      const hasNetworkError = [unitsRes.error, profilesRes.error, recordsRes.error, logsRes.error].some(
+        err => err && (
+          err.message?.includes('Failed to fetch') ||
+          err.details?.includes('Failed to fetch') ||
+          err.message?.includes('fetch failed')
+        )
+      );
+
+      if (hasNetworkError) {
+        // Cloud endpoint is unreachable (offline, paused project, or unresolvable DNS)
+        // Gracefully fallback to LocalStorage without throwing noisy console.error
+        setIsCloudConnected(false);
+        setRealtimeStatus('disconnected');
+        return;
+      }
+
       let anySuccess = false;
 
-      if (unitsRes.data) {
+      if (!unitsRes.error && Array.isArray(unitsRes.data) && unitsRes.data.length > 0) {
         setUnitKerjas(unitsRes.data);
         if (typeof window !== 'undefined') localStorage.setItem('satudata_units', JSON.stringify(unitsRes.data));
         anySuccess = true;
       } else if (unitsRes.error) {
-        console.error('Supabase fetch units error:', unitsRes.error);
+        console.warn('Supabase unit_kerja notice:', unitsRes.error.message);
       }
 
-      if (profilesRes.data && profilesRes.data.length > 0) {
+      if (!profilesRes.error && Array.isArray(profilesRes.data) && profilesRes.data.length > 0) {
         const formattedUsers = profilesRes.data.map(p => {
           const init = INITIAL_USERS.find(iu => iu.username.toLowerCase() === p.username.toLowerCase());
           return {
@@ -270,18 +302,18 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         if (typeof window !== 'undefined') localStorage.setItem('satudata_users', JSON.stringify(formattedUsers));
         anySuccess = true;
       } else if (profilesRes.error) {
-        console.error('Supabase fetch profiles error:', profilesRes.error);
+        console.warn('Supabase profiles notice:', profilesRes.error.message);
       }
 
-      if (recordsRes.data) {
+      if (!recordsRes.error && Array.isArray(recordsRes.data)) {
         setDataRecords(recordsRes.data);
         if (typeof window !== 'undefined') localStorage.setItem('satudata_records', JSON.stringify(recordsRes.data));
         anySuccess = true;
       } else if (recordsRes.error) {
-        console.error('Supabase fetch records error:', recordsRes.error);
+        console.warn('Supabase data_records notice:', recordsRes.error.message);
       }
 
-      if (logsRes.data) {
+      if (!logsRes.error && Array.isArray(logsRes.data)) {
         const formattedLogs = logsRes.data.map(l => ({
           id: l.id,
           user: l.username || 'System',
@@ -293,13 +325,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         if (typeof window !== 'undefined') localStorage.setItem('satudata_logs', JSON.stringify(formattedLogs));
         anySuccess = true;
       } else if (logsRes.error) {
-        console.error('Supabase fetch logs error:', logsRes.error);
+        console.warn('Supabase log_aktivitas notice:', logsRes.error.message);
       }
 
       setIsCloudConnected(anySuccess);
-      if (anySuccess) setRealtimeStatus('connected');
-    } catch (e) {
-      console.warn('Supabase fetch notice:', e);
+      setRealtimeStatus(anySuccess ? 'connected' : 'disconnected');
+    } catch {
       setIsCloudConnected(false);
       setRealtimeStatus('disconnected');
     }
@@ -389,7 +420,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           }
         }
       } catch (err) {
-        console.warn('Supabase insert record error:', err);
+        console.warn('Supabase insert record notice:', err);
       }
     }
   };
@@ -408,7 +439,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       try {
         await supabase.from('data_records').update(data).eq('id', id);
       } catch (err) {
-        console.warn('Supabase update record error:', err);
+        console.warn('Supabase update record notice:', err);
       }
     }
   };
@@ -426,7 +457,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       try {
         await supabase.from('data_records').delete().eq('id', id);
       } catch (err) {
-        console.warn('Supabase delete record error:', err);
+        console.warn('Supabase delete record notice:', err);
       }
     }
   };
@@ -456,7 +487,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           }
         }
       } catch (err) {
-        console.warn('Supabase insert unit error:', err);
+        console.warn('Supabase insert unit notice:', err);
       }
     }
   };
@@ -473,7 +504,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       try {
         await supabase.from('unit_kerja').update(unit).eq('id', id);
       } catch (err) {
-        console.warn('Supabase update unit error:', err);
+        console.warn('Supabase update unit notice:', err);
       }
     }
   };
@@ -500,7 +531,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       try {
         await supabase.from('unit_kerja').delete().eq('id', id);
       } catch (err) {
-        console.warn('Supabase delete unit error:', err);
+        console.warn('Supabase delete unit notice:', err);
       }
     }
   };
@@ -540,7 +571,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           setUsers(prev => prev.map(u => u.id === user.id ? { ...u, id: inserted.id } : u));
         }
       } catch (err) {
-        console.warn('Supabase insert profile error:', err);
+        console.warn('Supabase insert profile notice:', err);
       }
     }
   };
@@ -555,13 +586,22 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     if (typeof window !== 'undefined') {
       localStorage.setItem('satudata_users', JSON.stringify(updated));
     }
+
+    if (currentUser && currentUser.id === id) {
+      const updatedCurrent = { ...currentUser, ...data };
+      setCurrentUser(updatedCurrent);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('satudata_current_user', JSON.stringify(updatedCurrent));
+      }
+    }
+
     addLog(`Super Admin ${currentUser?.username || 'Admin'} memperbarui profil pengguna #${id}`);
 
     if (isSupabaseConfigured) {
       try {
         await supabase.from('profiles').update(data).eq('id', id);
       } catch (err) {
-        console.warn('Supabase update profile error:', err);
+        console.warn('Supabase update profile notice:', err);
       }
     }
   };
@@ -584,7 +624,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       try {
         await supabase.from('profiles').delete().eq('id', id);
       } catch (err) {
-        console.warn('Supabase delete profile error:', err);
+        console.warn('Supabase delete profile notice:', err);
       }
     }
   };
@@ -614,7 +654,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       try {
         await supabase.from('profiles').update({ status: nextStatus }).eq('id', id);
       } catch (err) {
-        console.warn('Supabase toggle status error:', err);
+        console.warn('Supabase toggle status notice:', err);
       }
     }
   };
@@ -638,6 +678,45 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     addLog(`Pembersihan riwayat audit log ${keepLatest5 ? '(menyimpan 5 log terbaru)' : 'seluruhnya'}`);
   };
 
+  // Robust SQL value parser that respects single/double quotes, escaped quotes (''), and commas inside strings
+  const parseSQLValues = (valuesStr: string): string[] => {
+    const values: string[] = [];
+    let current = '';
+    let inString = false;
+    let quoteChar = '';
+
+    for (let i = 0; i < valuesStr.length; i++) {
+      const char = valuesStr[i];
+      if (inString) {
+        if (char === quoteChar) {
+          if (valuesStr[i + 1] === quoteChar) {
+            current += quoteChar;
+            i++;
+          } else {
+            inString = false;
+          }
+        } else {
+          current += char;
+        }
+      } else {
+        if (char === "'" || char === '"') {
+          inString = true;
+          quoteChar = char;
+        } else if (char === ',') {
+          values.push(current.trim());
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+    }
+    values.push(current.trim());
+    return values.map(v => {
+      if (v.toUpperCase() === 'NULL') return '';
+      return v.replace(/^['"]|['"]$/g, '');
+    });
+  };
+
   const restoreSQLBackup = async (sqlContent: string): Promise<{ success: boolean; message: string }> => {
     try {
       if (!sqlContent || typeof sqlContent !== 'string') {
@@ -645,12 +724,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (!sqlContent.includes('unit_kerja') && !sqlContent.includes('data') && !sqlContent.includes('data_records')) {
-        throw new Error('Berkas bukan merupakan cadangan SQL Satu Data DINPERINNAKER yang valid.');
+        throw new Error('Berkas bukan merupakan cadangan SQL SatuNaker DINPERINNAKER yang valid.');
       }
 
       const lines = sqlContent.split('\n');
       const restoredUnits: UnitKerja[] = [];
       const restoredRecords: DataRecord[] = [];
+      const restoredUsers: UserProfile[] = [];
 
       for (const rawLine of lines) {
         const line = rawLine.trim();
@@ -658,19 +738,19 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           if (line.includes('unit_kerja')) {
             const match = line.match(/VALUES\s*\((.*)\);?/i);
             if (match) {
-              const parts = match[1].split(',').map(p => p.trim().replace(/^['"]|['"]$/g, ''));
+              const parts = parseSQLValues(match[1]);
               if (parts.length >= 3) {
                 restoredUnits.push({
                   id: Number(parts[0]) || Date.now(),
                   nama_unit: parts[1],
-                  tipe: parts[2] as any,
+                  tipe: (parts[2] as any) || 'bidang',
                 });
               }
             }
           } else if (line.includes('data_records') || line.includes('`data`') || line.includes(' data ')) {
             const match = line.match(/VALUES\s*\((.*)\);?/i);
             if (match) {
-              const parts = match[1].split(',').map(p => p.trim().replace(/^['"]|['"]$/g, ''));
+              const parts = parseSQLValues(match[1]);
               if (parts.length >= 6) {
                 restoredRecords.push({
                   id: Number(parts[0]) || Date.now(),
@@ -679,11 +759,29 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
                   satuan: parts[3],
                   tahun_awal: Number(parts[4]) || 2026,
                   jumlah: Number(parts[5]) || 0,
-                  link_gdrive: parts[6] && parts[6] !== 'NULL' ? parts[6] : null,
-                  deskripsi: parts[7] && parts[7] !== 'NULL' ? parts[7] : null,
+                  link_gdrive: parts[6] && parts[6] !== 'NULL' && parts[6] !== '' ? parts[6] : null,
+                  deskripsi: parts[7] && parts[7] !== 'NULL' && parts[7] !== '' ? parts[7] : null,
                   status: (parts[8] as any) || 'Aktif',
                   created_by: currentUser?.nama_lengkap || 'Super Admin',
                   created_at: new Date().toISOString(),
+                });
+              }
+            }
+          } else if (line.includes('profiles') || line.includes('users')) {
+            const match = line.match(/VALUES\s*\((.*)\);?/i);
+            if (match) {
+              const parts = parseSQLValues(match[1]);
+              if (parts.length >= 5) {
+                restoredUsers.push({
+                  id: parts[0] || Date.now().toString(),
+                  nama_lengkap: parts[1] || parts[2],
+                  nama: parts[1] || parts[2],
+                  username: parts[2] || parts[1],
+                  email: parts[3],
+                  role: (parts[4] as any) || 'Admin Bidang',
+                  unit_kerja_id: parts[5] && parts[5] !== '' && parts[5] !== 'NULL' ? Number(parts[5]) : null,
+                  status: (parts[6] as any) || 'Aktif',
+                  password: `${parts[2]}#2026`,
                 });
               }
             }
@@ -699,11 +797,15 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         setDataRecords(restoredRecords);
         localStorage.setItem('satudata_records', JSON.stringify(restoredRecords));
       }
+      if (restoredUsers.length > 0) {
+        setUsers(restoredUsers);
+        localStorage.setItem('satudata_users', JSON.stringify(restoredUsers));
+      }
 
-      addLog(`Super Admin memulihkan (restore) database dari berkas SQL cadangan`);
+      addLog(`Super Admin memulihkan (restore) database dari berkas SQL cadangan (${restoredUnits.length} unit, ${restoredRecords.length} data, ${restoredUsers.length} pengguna)`);
       return {
         success: true,
-        message: `Basis data berhasil dipulihkan! (${restoredUnits.length} unit kerja, ${restoredRecords.length} data sektoral)`,
+        message: `Basis data berhasil dipulihkan! (${restoredUnits.length} unit kerja, ${restoredRecords.length} data sektoral${restoredUsers.length > 0 ? `, ${restoredUsers.length} akun pengguna` : ''})`,
       };
     } catch (err: any) {
       return {

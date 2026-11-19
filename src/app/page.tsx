@@ -30,6 +30,9 @@ export default function DashboardPage() {
   const isSuperAdmin = currentUser?.role === 'Super Admin';
   const isKadis = currentUser?.role === 'Kepala Dinas';
 
+  const userUnit = useMemo(() => unitKerjas.find(u => u.id === currentUser?.unit_kerja_id), [unitKerjas, currentUser]);
+  const userUnitRecords = useMemo(() => dataRecords.filter(d => d.unit_kerja_id === currentUser?.unit_kerja_id), [dataRecords, currentUser]);
+
   // Available unique years
   const availableYears = useMemo(() => {
     const yrs = Array.from(new Set(dataRecords.map(d => d.tahun_awal))).sort((a, b) => b - a);
@@ -84,7 +87,7 @@ export default function DashboardPage() {
   const barColors = ['#0d6b63', '#ea580c', '#2563eb', '#7c3aed', '#059669'];
 
   return (
-    <AppLayout title="Dashboard Satu Data">
+    <AppLayout title="Dashboard SatuNaker">
       <div className="space-y-6">
         
         {/* Top Header */}
@@ -92,7 +95,7 @@ export default function DashboardPage() {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-white tracking-tight">
-                Dashboard Satu Data
+                Dashboard SatuNaker
               </h1>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
@@ -143,7 +146,7 @@ export default function DashboardPage() {
           <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-between">
             <div className="text-xs">
               <span className="font-bold text-amber-700 dark:text-amber-400">Mode Pimpinan Eksekutif:</span>
-              <span className="text-slate-600 dark:text-slate-300 ml-1.5">Johan Arifin, S.Sos., M.Si. (Kepala Dinas)</span>
+              <span className="text-slate-600 dark:text-slate-300 ml-1.5">{currentUser?.nama_lengkap || 'Johan Arifin, S.Sos., M.Si. (Kepala Dinas)'}</span>
             </div>
             <Link
               href="/laporan/print"
@@ -152,6 +155,24 @@ export default function DashboardPage() {
             >
               <Printer className="w-3.5 h-3.5" />
               <span>Cetak Rekap</span>
+            </Link>
+          </div>
+        )}
+
+        {/* Unit Kerja Admin Banner */}
+        {!isSuperAdmin && !isKadis && userUnit && (
+          <div className="p-4 rounded-2xl bg-teal-500/10 border border-teal-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="text-xs">
+              <span className="font-bold text-teal-800 dark:text-teal-300">Unit Bertugas:</span>
+              <span className="text-slate-700 dark:text-slate-200 font-semibold ml-1.5">{userUnit.nama_unit}</span>
+              <span className="text-slate-500 dark:text-slate-400 ml-2">({userUnitRecords.length} indikator tercatat)</span>
+            </div>
+            <Link
+              href="/kelola-data"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0d6b63] hover:bg-[#0a5851] text-white text-xs font-bold transition-all shadow-xs self-start sm:self-auto cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Kelola Data Unit Anda</span>
             </Link>
           </div>
         )}

@@ -4,6 +4,8 @@
 
 @layer base {
   :root {
+    --font-plus-jakarta: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    --font-inter: 'Inter', system-ui, -apple-system, sans-serif;
     --color-primary: #0d6b63;
     --color-primary-hover: #0a5851;
     --color-primary-light: #e6f4f2;
